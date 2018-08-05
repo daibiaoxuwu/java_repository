@@ -33,10 +33,21 @@ public class Textdetection {
     	       return (u*v<=0.00000001 && w*z<=0.00000001);
     }
 	public static Double[] cal_corrdinate(List<Double> anglelist, List<Double[]> corrdinatelist) {
+		//计算scale，估计误差可接受范围
+		double smin=0.0,smax=0.0;
+		for(Double[] i:corrdinatelist) for(double j:i) 
+		{
+			smin=Math.min(smin,j);
+			smax=Math.max(smax, j);
+		}
+		double scale=smax-smin;
+		
+		//补上最后一个夹角
 		double totangle=0.0;
 		for(double angle:anglelist) totangle+=angle;
 		anglelist.add(360-totangle);
-		System.out.println("init");
+		
+		
 		final int numOfPois=anglelist.size();
 		//大于180°的-180
 		for(int i=0;i<numOfPois;++i) {if(anglelist.get(i)>180.0) anglelist.set(i, 360-anglelist.get(i));}
@@ -44,6 +55,8 @@ public class Textdetection {
 		List<Double[][]> circles=new ArrayList<>();//存放圆心。一共有poi个元素，每个元素为[3][2],第一维代表两个圆心，第二维代表xy,[2][0]代表半径
 		List<Double[][][][]> results=new ArrayList<>();//存放交点。一共有poi个元素，每个元素为[2][2][2][2],
 		//第一,二维代表相交圆的形态，第三维代表两个圆的两个交点，第四维代表xy
+		
+		
 		//求出圆心
 		for(int poi=0;poi<numOfPois;++poi)
 		{
@@ -146,11 +159,11 @@ public class Textdetection {
 						result[poinum][nextnum][1][1]=y;
 						
 						
-						/*System.out.println("(x-a1)*(x-a1)+(y-b1)*(y-b1)=r1*r1: "+((x-a1)*(x-a1)+(y-b1)*(y-b1)-r1*r1));
+						System.out.println("(x-a1)*(x-a1)+(y-b1)*(y-b1)=r1*r1: "+((x-a1)*(x-a1)+(y-b1)*(y-b1)-r1*r1));
 						System.out.println("(x-a2)*(x-a2)+(y-b2)*(y-b2)=r2*r2: "+((x-a2)*(x-a2)+(y-b2)*(y-b2)-r2*r2));
 						System.out.println("crosspoint: "+Arrays.deepToString(result[poinum][nextnum]));
 						System.out.println("sharedpoint: "+Arrays.toString(corrdinatelist.get(nextPoi)));
-*/
+
 						
 						for(int check=0;check<2;++check)//两个交点中肯定有一个是nextPoi点
 						{
@@ -166,9 +179,9 @@ public class Textdetection {
 							Double[] line2=corrdinatelist.get(nextPoi);
 							double angle=anglelist.get(poi);
 							boolean ans=lineCross(circle,result[poinum][nextnum][check],line1,line2);
-							if(ans==true && angle<60 || ans==false && angle>120)
+							if(ans==true && angle<70 || ans==false && angle>110)
 							{
-								System.out.println("delete for wrongdir: "+poi+poinum+nextnum+check+" "+Arrays.toString(result[poinum][nextnum][check]));
+							//	System.out.println("delete for wrongdir: "+poi+poinum+nextnum+check+" "+Arrays.toString(result[poinum][nextnum][check]));
 								result[poinum][nextnum][check][0]=Double.NaN;
 								continue;
 							}
@@ -179,9 +192,9 @@ public class Textdetection {
 							line2=corrdinatelist.get(morePoi);
 							angle=anglelist.get(nextPoi);
 							ans=lineCross(circle,result[poinum][nextnum][check],line1,line2);
-							if(ans==true && angle<60 || ans==false && angle>120)
+							if(ans==true && angle<70 || ans==false && angle>110)
 							{
-								System.out.println("delete for wrongdir: "+poi+poinum+nextnum+check+" "+Arrays.toString(result[poinum][nextnum][check]));
+							//	System.out.println("delete for wrongdir: "+poi+poinum+nextnum+check+" "+Arrays.toString(result[poinum][nextnum][check]));
 								result[poinum][nextnum][check][0]=Double.NaN;
 								continue;
 							}
@@ -224,7 +237,20 @@ public class Textdetection {
 				}
 			results.add(result);
 		}
-		System.out.println("ls"+results.size());
+	//	System.out.println("ls"+results.size());
+		for(int poi=0;poi<numOfPois;++poi)
+			for(int poinum=0;poinum<2;++poinum)
+				for(int nextnum=0;nextnum<2;++nextnum)//确定圆姿态
+				{
+					for (int check=0;check<2;++check)
+					{
+						if(Double.isNaN(results.get(poi)[poinum][nextnum][check][0])==false)
+						{
+							System.out.println("point: "+poi+poinum+nextnum+"cross: "+Arrays.toString(results.get(poi)[poinum][nextnum][check]));
+						}
+					}
+				}
+		
 		//这样每个圆形态得到了最多6个交点。在每个圆形态选择最好的一组
 		double min=Double.POSITIVE_INFINITY;
 		int resultPointer=-1;//表示6个点中的哪3个点
@@ -233,7 +259,7 @@ public class Textdetection {
 		for(int poinum=0;poinum<2;++poinum)
 			for(int nextnum=0;nextnum<2;++nextnum)//确定圆姿态
 			{
-				for(int pointer=5;pointer<(1<<numOfPois);++pointer)//2^3,选择哪边的交点
+				for(int pointer=0;pointer<(1<<numOfPois);++pointer)//2^3,选择哪边的交点
 				{
 					double max=0;
 					for(int poi=0;poi<numOfPois;++poi)//计算最大边
@@ -248,7 +274,7 @@ public class Textdetection {
 					//	else System.out.println("nextpoi:"+poi+ " "+poinum+" "+nextnum+" "+pointer+" "+Arrays.toString(nextPoint));
 						
 						max=Math.max(max, dis_s(crossPoint,nextPoint));
-						System.out.println(max);
+				//		System.out.println(max);
 					}
 					if(max!=0 && max<min)
 					{
@@ -259,12 +285,27 @@ public class Textdetection {
 						
 				//		System.out.println("res: "+min+" "+poinum+" "+nextnum+" "+resultPointer);
 					}
-					System.out.println("res: "+min+" "+max+" "+poinum+" "+nextnum+" "+resultPointer);
+					if(max!=0 && (max<scale*scale || max==min))
+					{
+						Double midPointX=0.0;
+						Double midPointY=0.0;
+						for(int poi=0;poi<numOfPois;++poi)//计算最大边
+						{
+							midPointX+=results.get(poi)[poinum][nextnum][(pointer&(1<<poi))>>poi][0];
+							midPointY+=results.get(poi)[poinum][nextnum][(pointer&(1<<poi))>>poi][1];
+							System.out.println("possible: "+midPointX+" "+midPointY);
+						}
+						Double[] midPoint= {midPointX/numOfPois, midPointY/numOfPois};
+						System.out.println("possible: dist:"+max+" pos: "+Arrays.toString(midPoint));
+					}
+					//System.out.println("res: "+min+" "+max+" "+poinum+" "+nextnum+" "+resultPointer);
 				}
 			}
+		
+		//返回 
 		Double midPointX=0.0;
 		Double midPointY=0.0;
-		System.out.println("res: "+min+" "+resultPointer);
+	//	System.out.println("res: "+min+" "+resultPointer);
 		for(int poi=0;poi<numOfPois;++poi)//计算最大边
 		{
 			midPointX+=results.get(poi)[minpoinum][minnextnum][(resultPointer&(1<<poi))>>poi][0];
@@ -275,7 +316,7 @@ public class Textdetection {
 	}
 	
 	public static void main(String[] args) {
-		
+		 //angleList：[6.296439999999961, 63.0634225, 41.277267499999994]locationNameList：[CITY, HAIN, 医, HUAWEI]
 //		final List<Double[]> corrdinatelist=new ArrayList<>();
 //		Double[] location5= {-5.0,10.0};corrdinatelist.add(location5);//中国黄金
 //		Double[] location6= {11.0,8.2};corrdinatelist.add(location6);//UNIQLO
@@ -301,17 +342,47 @@ public class Textdetection {
 //		anglelist.add(46.0);
 //		anglelist.add(88.0);
 		
+//		final List<Double[]> corrdinatelist=new ArrayList<>();
+////		Double[] location5= {-5.0,10.0};corrdinatelist.add(location5);//中国黄金
+////		Double[] location6= {11.0,8.2};corrdinatelist.add(location6);//UNIQLO
+//		Double[] location1= {Math.random(),Math.random()};corrdinatelist.add(location1);//LOVE
+//		Double[] location2= {Math.random(),Math.random()};corrdinatelist.add(location2);//BHG
+//		Double[] location3= {Math.random(),Math.random()};corrdinatelist.add(location3);//COMELY
+//		Double[] location4= {Math.random(),Math.random()};corrdinatelist.add(location4);//VERO
+//		final List<Double> anglelist=new ArrayList<>();
+//		anglelist.add(Math.random()*90);
+//		anglelist.add(Math.random()*90);
+//		anglelist.add(Math.random()*90);
+		
 		final List<Double[]> corrdinatelist=new ArrayList<>();
-//		Double[] location5= {-5.0,10.0};corrdinatelist.add(location5);//中国黄金
-//		Double[] location6= {11.0,8.2};corrdinatelist.add(location6);//UNIQLO
-		Double[] location1= {Math.random(),Math.random()};corrdinatelist.add(location1);//LOVE
-		Double[] location2= {Math.random(),Math.random()};corrdinatelist.add(location2);//BHG
-		Double[] location3= {Math.random(),Math.random()};corrdinatelist.add(location3);//COMELY
-		Double[] location4= {Math.random(),Math.random()};corrdinatelist.add(location4);//VERO
+		Double[] location7= {-20.0,-30.0};corrdinatelist.add(location7);//MISHA
+		Double[] location5= {0.0,65.0};corrdinatelist.add(location5);//CITY
+		//Double[] location6= {11.0,8.2};corrdinatelist.add(location6);//UNIQLO
+		Double[] location1= {75.0,70.0};corrdinatelist.add(location1);//医
+		//Double[] location2= {75.0,20.0};corrdinatelist.add(location2);//HUAWEI
+		//Double[] location3= {-8.0,-8.5};corrdinatelist.add(location3);//COMELY
+		//Double[] location4= {-12.5,-5.0};corrdinatelist.add(location4);//VERO
 		final List<Double> anglelist=new ArrayList<>();
-		anglelist.add(Math.random()*90);
-		anglelist.add(Math.random()*90);
-		anglelist.add(Math.random()*90);
+		//anglelist.add(6.296439999999961);
+		anglelist.add(100.71159);
+		anglelist.add(61.23507749999999);
+		
+		final Double[] truth= {40.0,10.0};
+		double firstangle=0.0;
+		for(Double[] point:corrdinatelist)
+		{
+			double diffx=point[0]-truth[0];
+			double diffy=point[1]-truth[1];
+			double angle=Math.toDegrees(Math.atan(diffy/diffx));
+			
+			if(firstangle!=0.0)
+			{
+				double diffangle=angle-firstangle;
+				if(diffangle<0.0) diffangle+=180.0;
+				System.out.println("trueangle: "+diffangle);
+			}
+			firstangle=angle; 
+		}
 		
 		System.out.println(Arrays.toString(cal_corrdinate(anglelist,corrdinatelist)));
 
