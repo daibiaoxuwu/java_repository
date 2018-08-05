@@ -161,7 +161,7 @@ public class Textdetection {
 								continue;
 							}
 							
-						/*	Double[] circle=circles.get(poi)[poinum];
+							Double[] circle=circles.get(poi)[poinum];
 							Double[] line1=corrdinatelist.get(poi);
 							Double[] line2=corrdinatelist.get(nextPoi);
 							double angle=anglelist.get(poi);
@@ -184,7 +184,7 @@ public class Textdetection {
 								System.out.println("delete for wrongdir: "+poi+poinum+nextnum+check+" "+Arrays.toString(result[poinum][nextnum][check]));
 								result[poinum][nextnum][check][0]=Double.NaN;
 								continue;
-							}*/
+							}
 							
 							  
 							/*
