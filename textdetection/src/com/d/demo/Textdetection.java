@@ -140,9 +140,9 @@ public class Textdetection {
 						result[poinum][nextnum][0][1]=y;
 						result[poinum][nextnum][1][0]=Double.NaN;
 						results.add(result);
-						System.out.println("(x-a1)/(a2-a1)=(y-b1)/(b2-b1): "+((x-a1)/(a2-a1)-(y-b1)/(b2-b1)));
-						System.out.println("delta: "+delta);
-						System.out.println("-BB/2/AA: "+(-BB/2/AA));
+//						System.out.println("(x-a1)/(a2-a1)=(y-b1)/(b2-b1): "+((x-a1)/(a2-a1)-(y-b1)/(b2-b1)));
+//						System.out.println("delta: "+delta);
+//						System.out.println("-BB/2/AA: "+(-BB/2/AA));
 					}
 					else //返回两个交点
 					{
@@ -159,10 +159,10 @@ public class Textdetection {
 						result[poinum][nextnum][1][1]=y;
 						
 						
-						System.out.println("(x-a1)*(x-a1)+(y-b1)*(y-b1)=r1*r1: "+((x-a1)*(x-a1)+(y-b1)*(y-b1)-r1*r1));
-						System.out.println("(x-a2)*(x-a2)+(y-b2)*(y-b2)=r2*r2: "+((x-a2)*(x-a2)+(y-b2)*(y-b2)-r2*r2));
-						System.out.println("crosspoint: "+Arrays.deepToString(result[poinum][nextnum]));
-						System.out.println("sharedpoint: "+Arrays.toString(corrdinatelist.get(nextPoi)));
+//						System.out.println("(x-a1)*(x-a1)+(y-b1)*(y-b1)=r1*r1: "+((x-a1)*(x-a1)+(y-b1)*(y-b1)-r1*r1));
+//						System.out.println("(x-a2)*(x-a2)+(y-b2)*(y-b2)=r2*r2: "+((x-a2)*(x-a2)+(y-b2)*(y-b2)-r2*r2));
+//						System.out.println("crosspoint: "+Arrays.deepToString(result[poinum][nextnum]));
+//						System.out.println("sharedpoint: "+Arrays.toString(corrdinatelist.get(nextPoi)));
 
 						
 						for(int check=0;check<2;++check)//两个交点中肯定有一个是nextPoi点
@@ -181,7 +181,7 @@ public class Textdetection {
 							boolean ans=lineCross(circle,result[poinum][nextnum][check],line1,line2);
 							if(ans==true && angle<70 || ans==false && angle>110)
 							{
-							//	System.out.println("delete for wrongdir: "+poi+poinum+nextnum+check+" "+Arrays.toString(result[poinum][nextnum][check]));
+								System.out.println("delete for wrongdir: "+poi+poinum+nextnum+check+" "+Arrays.toString(result[poinum][nextnum][check]));
 								result[poinum][nextnum][check][0]=Double.NaN;
 								continue;
 							}
@@ -194,7 +194,7 @@ public class Textdetection {
 							ans=lineCross(circle,result[poinum][nextnum][check],line1,line2);
 							if(ans==true && angle<70 || ans==false && angle>110)
 							{
-							//	System.out.println("delete for wrongdir: "+poi+poinum+nextnum+check+" "+Arrays.toString(result[poinum][nextnum][check]));
+								System.out.println("delete for wrongdir: "+poi+poinum+nextnum+check+" "+Arrays.toString(result[poinum][nextnum][check]));
 								result[poinum][nextnum][check][0]=Double.NaN;
 								continue;
 							}
@@ -238,7 +238,10 @@ public class Textdetection {
 			results.add(result);
 		}
 	//	System.out.println("ls"+results.size());
+		int[] crossnum=new int[numOfPois];
 		for(int poi=0;poi<numOfPois;++poi)
+		{
+			crossnum[poi]=0;
 			for(int poinum=0;poinum<2;++poinum)
 				for(int nextnum=0;nextnum<2;++nextnum)//确定圆姿态
 				{
@@ -247,71 +250,78 @@ public class Textdetection {
 						if(Double.isNaN(results.get(poi)[poinum][nextnum][check][0])==false)
 						{
 							System.out.println("point: "+poi+poinum+nextnum+"cross: "+Arrays.toString(results.get(poi)[poinum][nextnum][check]));
+							crossnum[poi]++;
 						}
 					}
 				}
+		}
 		
 		//这样每个圆形态得到了最多6个交点。在每个圆形态选择最好的一组
 		double min=Double.POSITIVE_INFINITY;
-		int resultPointer=-1;//表示6个点中的哪3个点
-		int minpoinum=-1;
-		int minnextnum=-1;
-		for(int poinum=0;poinum<2;++poinum)
-			for(int nextnum=0;nextnum<2;++nextnum)//确定圆姿态
-			{
+		double bestmidPointX=0;
+		double bestmidPointY=0;
+	
+		
 				for(int pointer=0;pointer<(1<<numOfPois);++pointer)//2^3,选择哪边的交点
 				{
+					double midPointX=0;
+					double midPointY=0;
 					double max=0;
 					for(int poi=0;poi<numOfPois;++poi)//计算最大边
 					{
 						int nextPoi=(poi+1)%numOfPois;
 						
-						Double[] crossPoint=results.get(poi)[poinum][nextnum][(pointer&(1<<poi))>>poi]; 
-						if(Double.isNaN(crossPoint[0])) {max=0;break;} 
-					//	else System.out.println("poi:"+poi+ " "+poinum+" "+nextnum+" "+pointer+" "+Arrays.toString(crossPoint));
-						Double[] nextPoint=results.get(nextPoi)[poinum][nextnum][(pointer&(1<<nextPoi))>>nextPoi];	
-						if(Double.isNaN(nextPoint[0])) {max=0;break;}
-					//	else System.out.println("nextpoi:"+poi+ " "+poinum+" "+nextnum+" "+pointer+" "+Arrays.toString(nextPoint));
+						Double[][] points=results.get(poi)[(pointer>>poi)&1][(pointer>>nextPoi)&1];
+						Double[] crosspoint;
+						if(Double.isNaN(points[0][0]))	{
+							if(Double.isNaN(points[1][0]))	{
+								max=0;break;
+							}
+							else {
+								crosspoint=points[1];
+							}
+						}
+						else {
+							crosspoint=points[0];//其实每次相交都一定会有一个是sharedpoint，不需要两个交点都考虑了。
+						}
 						
-						max=Math.max(max, dis_s(crossPoint,nextPoint));
+						int morePoi=(nextPoi+1)%numOfPois;
+						points=results.get(nextPoi)[(pointer>>nextPoi)&1][(pointer>>morePoi)&1];
+						Double[] nextpoint;
+						if(Double.isNaN(points[0][0]))	{
+							if(Double.isNaN(points[1][0]))	{
+								max=0;break;
+							}
+							else {
+								nextpoint=points[1];
+							}
+						}
+						else {
+							nextpoint=points[0];//其实每次相交都一定会有一个是sharedpoint，不需要两个交点都考虑了。
+						}
+						
+						
+						max=Math.max(max, dis_s(crosspoint,nextpoint));
+						midPointX+=crosspoint[0];
+						midPointY+=crosspoint[1];
 				//		System.out.println(max);
 					}
 					if(max!=0 && max<min)
 					{
 						min=max;
-						resultPointer=pointer;
-						minpoinum=poinum;
-						minnextnum=nextnum;
-						
-				//		System.out.println("res: "+min+" "+poinum+" "+nextnum+" "+resultPointer);
+						bestmidPointX=midPointX;
+						bestmidPointY=midPointY;
+						//		System.out.println("res: "+min+" "+poinum+" "+nextnum+" "+resultPointer);
 					}
 					if(max!=0 && (max<scale*scale || max==min))
 					{
-						Double midPointX=0.0;
-						Double midPointY=0.0;
-						for(int poi=0;poi<numOfPois;++poi)//计算最大边
-						{
-							midPointX+=results.get(poi)[poinum][nextnum][(pointer&(1<<poi))>>poi][0];
-							midPointY+=results.get(poi)[poinum][nextnum][(pointer&(1<<poi))>>poi][1];
-							System.out.println("possible: "+midPointX+" "+midPointY);
-						}
 						Double[] midPoint= {midPointX/numOfPois, midPointY/numOfPois};
 						System.out.println("possible: dist:"+max+" pos: "+Arrays.toString(midPoint));
 					}
 					//System.out.println("res: "+min+" "+max+" "+poinum+" "+nextnum+" "+resultPointer);
 				}
-			}
-		
-		//返回 
-		Double midPointX=0.0;
-		Double midPointY=0.0;
-	//	System.out.println("res: "+min+" "+resultPointer);
-		for(int poi=0;poi<numOfPois;++poi)//计算最大边
-		{
-			midPointX+=results.get(poi)[minpoinum][minnextnum][(resultPointer&(1<<poi))>>poi][0];
-			midPointY+=results.get(poi)[minpoinum][minnextnum][(resultPointer&(1<<poi))>>poi][1];
-		}
-		Double[] midPoint= {midPointX/numOfPois, midPointY/numOfPois};
+	
+		Double[] midPoint= {bestmidPointX/numOfPois, bestmidPointY/numOfPois};
 	    return midPoint;
 	}
 	
@@ -355,30 +365,37 @@ public class Textdetection {
 //		anglelist.add(Math.random()*90);
 		
 		final List<Double[]> corrdinatelist=new ArrayList<>();
-		Double[] location7= {-20.0,-30.0};corrdinatelist.add(location7);//MISHA
-		Double[] location5= {0.0,65.0};corrdinatelist.add(location5);//CITY
-		//Double[] location6= {11.0,8.2};corrdinatelist.add(location6);//UNIQLO
-		Double[] location1= {75.0,70.0};corrdinatelist.add(location1);//医
-		//Double[] location2= {75.0,20.0};corrdinatelist.add(location2);//HUAWEI
+		Double[] location7= {11.0,8.2};corrdinatelist.add(location7);//MISHA
+		Double[] location5= {4.0,0.5};corrdinatelist.add(location5);//CITY
+		Double[] location6= {0.1,-8.0};corrdinatelist.add(location6);//UNIQLO
+		Double[] location1= {-8.0,-8.5};corrdinatelist.add(location1);//医
 		//Double[] location3= {-8.0,-8.5};corrdinatelist.add(location3);//COMELY
-		//Double[] location4= {-12.5,-5.0};corrdinatelist.add(location4);//VERO
+		Double[] location4= {-12.5,-5.0};corrdinatelist.add(location4);//VERO
+		Double[] location2= {-5.0,10.0};corrdinatelist.add(location2);//HUAWEI
+		
 		final List<Double> anglelist=new ArrayList<>();
 		//anglelist.add(6.296439999999961);
-		anglelist.add(100.71159);
-		anglelist.add(61.23507749999999);
+		anglelist.add(24.47015299999999);
+		anglelist.add(111.59930500000002);
+		anglelist.add(45.909385000000015);
+		anglelist.add(16.78564);
+		anglelist.add(71.31687499999998);
 		
-		final Double[] truth= {40.0,10.0};
+		
+		final Double[] truth= {0.0,0.0};
 		double firstangle=0.0;
 		for(Double[] point:corrdinatelist)
 		{
 			double diffx=point[0]-truth[0];
 			double diffy=point[1]-truth[1];
 			double angle=Math.toDegrees(Math.atan(diffy/diffx));
-			
+			if(diffx<0) angle+=180;
+			if(diffy<0 && diffx>0) angle+=360;
+			//System.out.println(angle);
 			if(firstangle!=0.0)
 			{
-				double diffangle=angle-firstangle;
-				if(diffangle<0.0) diffangle+=180.0;
+				double diffangle=-angle+firstangle;
+				if(diffangle<0.0) diffangle+=360.0;
 				System.out.println("trueangle: "+diffangle);
 			}
 			firstangle=angle; 
