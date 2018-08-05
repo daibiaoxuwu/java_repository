@@ -255,72 +255,77 @@ public class Textdetection {
 					}
 				}
 		}
+		for(int i : crossnum)System.out.println(i);
 		
 		//这样每个圆形态得到了最多6个交点。在每个圆形态选择最好的一组
 		double min=Double.POSITIVE_INFINITY;
 		double bestmidPointX=0;
 		double bestmidPointY=0;
 	
-		
-				for(int pointer=0;pointer<(1<<numOfPois);++pointer)//2^3,选择哪边的交点
-				{
-					double midPointX=0;
-					double midPointY=0;
-					double max=0;
-					for(int poi=0;poi<numOfPois;++poi)//计算最大边
-					{
-						int nextPoi=(poi+1)%numOfPois;
-						
-						Double[][] points=results.get(poi)[(pointer>>poi)&1][(pointer>>nextPoi)&1];
-						Double[] crosspoint;
-						if(Double.isNaN(points[0][0]))	{
-							if(Double.isNaN(points[1][0]))	{
-								max=0;break;
-							}
-							else {
-								crosspoint=points[1];
-							}
-						}
-						else {
-							crosspoint=points[0];//其实每次相交都一定会有一个是sharedpoint，不需要两个交点都考虑了。
-						}
-						
-						int morePoi=(nextPoi+1)%numOfPois;
-						points=results.get(nextPoi)[(pointer>>nextPoi)&1][(pointer>>morePoi)&1];
-						Double[] nextpoint;
-						if(Double.isNaN(points[0][0]))	{
-							if(Double.isNaN(points[1][0]))	{
-								max=0;break;
-							}
-							else {
-								nextpoint=points[1];
-							}
-						}
-						else {
-							nextpoint=points[0];//其实每次相交都一定会有一个是sharedpoint，不需要两个交点都考虑了。
-						}
-						
-						
-						max=Math.max(max, dis_s(crosspoint,nextpoint));
-						midPointX+=crosspoint[0];
-						midPointY+=crosspoint[1];
-				//		System.out.println(max);
+		double max=0;
+		double midPointX=0;
+		double midPointY=0;
+
+		for(int pointer=0;pointer<(1<<(numOfPois*2));++pointer)//2^3,选择哪边的交点
+		{
+			max=0;
+			midPointX=0;
+			midPointY=0;
+			for(int poi=0;poi<numOfPois;++poi)//计算最大边
+			{
+				int nextPoi=(poi+1)%numOfPois;
+				if(crossnum[poi]==0) continue;
+				if(crossnum[nextPoi]==0) continue;
+
+				Double[][] points=results.get(poi)[(pointer>>(poi*2))&1][(pointer>>(poi*2+1))&1];
+				Double[] crosspoint;
+				if(Double.isNaN(points[0][0]))	{
+					if(Double.isNaN(points[1][0]))	{
+						max=0;break;
 					}
-					if(max!=0 && max<min)
-					{
-						min=max;
-						bestmidPointX=midPointX;
-						bestmidPointY=midPointY;
-						//		System.out.println("res: "+min+" "+poinum+" "+nextnum+" "+resultPointer);
+					else {
+						crosspoint=points[1];
 					}
-					if(max!=0 && (max<scale*scale || max==min))
-					{
-						Double[] midPoint= {midPointX/numOfPois, midPointY/numOfPois};
-						System.out.println("possible: dist:"+max+" pos: "+Arrays.toString(midPoint));
-					}
-					//System.out.println("res: "+min+" "+max+" "+poinum+" "+nextnum+" "+resultPointer);
 				}
-	
+				else {
+					crosspoint=points[0];//其实每次相交都一定会有一个是sharedpoint，不需要两个交点都考虑了。
+				}
+				
+				points=results.get(nextPoi)[(pointer>>(2*nextPoi))&1][(pointer>>(2*nextPoi+1))&1];
+				Double[] nextpoint;
+				if(Double.isNaN(points[0][0]))	{
+					if(Double.isNaN(points[1][0]))	{
+						max=0;break;
+					}
+					else {
+						nextpoint=points[1];
+					}
+				}
+				else {
+					nextpoint=points[0];//其实每次相交都一定会有一个是sharedpoint，不需要两个交点都考虑了。
+				}
+				
+				
+				max=Math.max(max, dis_s(crosspoint,nextpoint));
+				midPointX+=crosspoint[0];
+				midPointY+=crosspoint[1];
+			}
+		
+			if(max!=0 && max<min)
+			{
+				min=max;
+				bestmidPointX=midPointX;
+				bestmidPointY=midPointY;
+				System.out.println("res: "+min+" "+midPointX+" "+midPointY);
+			}
+			if(max!=0 && (max<scale*scale || max==min))
+			{
+				Double[] midPoint= {midPointX/numOfPois, midPointY/numOfPois};
+				System.out.println("possible: dist:"+max+" pos: "+Arrays.toString(midPoint));
+			}
+		}
+					//System.out.println("res: "+min+" "+max+" "+poinum+" "+nextnum+" "+resultPointer);
+					
 		Double[] midPoint= {bestmidPointX/numOfPois, bestmidPointY/numOfPois};
 	    return midPoint;
 	}
