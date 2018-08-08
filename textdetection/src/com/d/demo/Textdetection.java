@@ -295,9 +295,10 @@ public class Textdetection {
 		double max=0;
 		double midPointX=0;
 		double midPointY=0;
-
+		
 		for(int pointer=0;pointer<(1<<(numOfPois*2));++pointer)//2^3,选择哪边的交点
 		{
+			//TODO：排除重复的情况：当poinum=0时，会重复四次同样的结果。
 			max=0;
 			midPointX=0;
 			midPointY=0;
