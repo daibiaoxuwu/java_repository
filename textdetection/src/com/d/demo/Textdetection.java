@@ -32,6 +32,33 @@ public class Textdetection {
     	       z=(b[0]-c[0])*(d[1]-c[1])-(d[0]-c[0])*(b[1]-c[1]);
     	       return (u*v<=0.00000001 && w*z<=0.00000001);
     }
+    public static Double[] grad_descent(List<Double> anglelist, List<Double[]> corrdinatelist, Double x, Double y) {
+        Double a = 0.0000001;
+        Double end = 0.00000001;
+        int flag = 1;
+        while (true) {
+            Double dx = 0.0;
+            Double dy = 0.0;
+            Double[] co = {x, y};
+            for (int i = 0; i < anglelist.size(); i++) {
+                Double a2 = dis_s(corrdinatelist.get(i), corrdinatelist.get(i+1));
+                Double b2 = dis_s(corrdinatelist.get(i+1), co);
+                Double c2 = dis_s(corrdinatelist.get(i), co);
+                Double d = 2 * ((b2 + c2 - a2) / (2 * Math.sqrt(b2) * Math.sqrt(c2) + 0.001) - Math.cos(3.1415926 * anglelist.get(i) / 180));
+                dx = dx + d * (-4 * (corrdinatelist.get(i)[0] + corrdinatelist.get(i+1)[0] - x * 2) * Math.sqrt(b2) * Math.sqrt(c2) - 2 * (b2 + c2 - a2) * (-1* ((Math.sqrt(c2) / (Math.sqrt(b2) * (corrdinatelist.get(i+1)[0] - x) + 0.001)) + (Math.sqrt(b2) / (Math.sqrt(c2) * (corrdinatelist.get(i)[0] - x) + 0.001)))));
+                dy = dy + d * (-4 * (corrdinatelist.get(i)[1] + corrdinatelist.get(i+1)[1] - y * 2) * Math.sqrt(b2) * Math.sqrt(c2) - 2 * (b2 + c2 - a2) * (-1 * ((Math.sqrt(c2) / (Math.sqrt(b2) * (corrdinatelist.get(i+1)[1] - y) + 0.001)) + (Math.sqrt(b2) / (Math.sqrt(c2) * (corrdinatelist.get(i)[1] - y) + 0.001)))));
+            }
+            if (Math.abs(a*dx)<end && Math.abs(a*dy)<end) {
+                break;
+            }
+            flag++;
+            x = x - a * dx;
+            y = y - a * dy;
+        }
+        Double[] ans={x, y};
+        return ans;
+    }
+
 	public static Double[] cal_corrdinate(List<Double> anglelist, List<Double[]> corrdinatelist) {
 		//计算scale，估计误差可接受范围
 		double smin=0.0,smax=0.0;
@@ -46,7 +73,7 @@ public class Textdetection {
 		double totangle=0.0;
 		for(double angle:anglelist) totangle+=angle;
 		anglelist.add(360-totangle);
-		
+		System.out.println("tot: "+(360-totangle));
 		
 		final int numOfPois=anglelist.size();
 		//大于180°的-180
@@ -78,7 +105,10 @@ public class Textdetection {
 			circle[1][0]=midPointX-toCircleX;//圆心1 当a2>a1,b2>b1时，在下面
 			circle[1][1]=midPointY-toCircleY;
 			Double[] midPoint= {midPointX,midPointY};
+			
 			circle[2][0]=dis(midPoint,corrdinatelist.get(poi))/Math.sin(Math.toRadians(anglelist.get(poi)));
+			System.out.println("poi: " +poi+" circle: "+Arrays.deepToString(circle));
+			
 			circles.add(circle);
 			
 			/*double x=corrdinatelist.get(poi)[0];
@@ -271,6 +301,7 @@ public class Textdetection {
 			max=0;
 			midPointX=0;
 			midPointY=0;
+	//		System.out.println("startloop");
 			for(int poi=0;poi<numOfPois;++poi)//计算最大边
 			{
 				int nextPoi=(poi+1)%numOfPois;
@@ -309,6 +340,7 @@ public class Textdetection {
 				max=Math.max(max, dis_s(crosspoint,nextpoint));
 				midPointX+=crosspoint[0];
 				midPointY+=crosspoint[1];
+			//	System.out.println(Arrays.toString(crosspoint)+"     "+dis_s(crosspoint,nextpoint));
 			}
 		
 			if(max!=0 && max<min)
@@ -318,10 +350,37 @@ public class Textdetection {
 				bestmidPointY=midPointY;
 				System.out.println("res: "+min+" "+midPointX+" "+midPointY);
 			}
-			if(max!=0 && (max<scale*scale || max==min))
+			if(max!=0 && max==min)
 			{
 				Double[] midPoint= {midPointX/numOfPois, midPointY/numOfPois};
 				System.out.println("possible: dist:"+max+" pos: "+Arrays.toString(midPoint));
+				for(int poi=0;poi<numOfPois;++poi)//计算最大边
+				{
+					int nextPoi=(poi+1)%numOfPois;
+					if(crossnum[poi]==0) continue;
+					if(crossnum[nextPoi]==0) continue;
+					
+					Double[][] points=results.get(poi)[(pointer>>(poi*2))&1][(pointer>>(poi*2+1))&1];
+					Double[] crosspoint;
+					if(Double.isNaN(points[0][0]))	{
+						if(Double.isNaN(points[1][0]))	{
+							max=0;break;
+						}
+						else {
+							crosspoint=points[1];
+						}
+					}
+					else {
+						crosspoint=points[0];//其实每次相交都一定会有一个是sharedpoint，不需要两个交点都考虑了。
+					}
+					System.out.println("poi: "+poi+" "+((pointer>>(poi*2))&1)+" "+((pointer>>(poi*2+1))&1)+" "+Arrays.toString(crosspoint));
+				}
+					
+			}
+			if(max!=0 && (max<scale*scale || max==min))
+			{
+				Double[] midPoint= {midPointX/numOfPois, midPointY/numOfPois};
+		//		System.out.println("possible: dist:"+max+" pos: "+Arrays.toString(midPoint));
 			}
 		}
 					//System.out.println("res: "+min+" "+max+" "+poinum+" "+nextnum+" "+resultPointer);
@@ -406,7 +465,25 @@ public class Textdetection {
 			firstangle=angle; 
 		}
 		
-		System.out.println(Arrays.toString(cal_corrdinate(anglelist,corrdinatelist)));
+		Double[] answer=cal_corrdinate(anglelist,corrdinatelist);
+		System.out.println(Arrays.toString(answer));
+		firstangle=0.0;
+		for(Double[] point:corrdinatelist)
+		{
+			double diffx=point[0]-answer[0];
+			double diffy=point[1]-answer[1];
+			double angle=Math.toDegrees(Math.atan(diffy/diffx));
+			if(diffx<0) angle+=180;
+			if(diffy<0 && diffx>0) angle+=360;
+			//System.out.println(angle);
+			if(firstangle!=0.0)
+			{
+				double diffangle=-angle+firstangle;
+				if(diffangle<0.0) diffangle+=360.0;
+				System.out.println("answerangle: "+diffangle);
+			}
+			firstangle=angle; 
+		}
 
 	}
 
